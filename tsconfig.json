@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "outDir": "./lib",
+        "declaration": true,
+        "strictNullChecks": true,
+        "moduleResolution": "node",
+        "allowJs": true,
+        "target": "es6"
+    },
+    "include": [
+        "./src"
+    ]
+}

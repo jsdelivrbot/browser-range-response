@@ -1,33 +1,33 @@
 {
-  "name": "browser-range-response",
-  "version": "1.0.0",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
-  "license": "MIT",
-  "dependencies": {
-    "range-parser": "^1.2.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": ""
-  },
-  "devDependencies": {
-    "@types/expect.js": "^0.3.29",
-    "@types/mocha": "^2.2.40",
-    "browserify": "^14.3.0",
-    "expect.js": "^0.3.1",
-    "express": "^4.15.2",
-    "mocha": "^3.2.0",
-    "npm-run-all": "^4.0.2",
-    "send-seekable": "^1.0.4",
-    "serve-static": "^1.12.1",
-    "tsify": "^3.0.1",
-    "typescript": "^2.2.2",
-    "watchify": "^3.9.0"
-  },
-  "scripts": {
-    "test:build": "watchify test/test.ts -p [ tsify ] -o test/test.js",
-    "test:server": "node test-server.js",
-    "test": "npm-run-all --parallel test:*"
-  }
+    "name": "browser-range-response",
+    "version": "1.0.0",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "license": "MIT",
+    "dependencies": {
+        "range-parser": "^1.2.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": ""
+    },
+    "devDependencies": {
+        "@types/chai": "^4.0.4",
+        "chai": "^4.1.1",
+        "@types/mocha": "^2.2.40",
+        "browserify": "^14.3.0",
+        "express": "^4.15.2",
+        "mocha": "^3.2.0",
+        "npm-run-all": "^4.0.2",
+        "send-seekable": "^1.0.4",
+        "serve-static": "^1.12.1",
+        "tsify": "^3.0.1",
+        "typescript": "^2.2.2",
+        "watchify": "^3.9.0"
+    },
+    "scripts": {
+        "test:build": "watchify test/test.ts -p [ tsify ] -o test/test.js",
+        "test:server": "node test-server.js",
+        "test": "npm-run-all --parallel test:*"
+    }
 }

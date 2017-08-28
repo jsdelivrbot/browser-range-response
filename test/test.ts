@@ -1,19 +1,19 @@
 import checkForRangeRequest from "../src/index";
 import "mocha";
-import * as expectLib from "../node_modules/expect.js";
+import { expect } from "chai";
 
 // stupid TS definitions
-let expect = (expectLib as any) as (any) => Expect.Root;
+// let expect = (expectLib as any) as (any) => Expect.Root;
 
 mocha.setup({
     ui: "bdd"
 });
 
-xdescribe("Existing browser behaviour (should fail)", function() {
+describe("Existing browser behaviour (should fail)", function() {
     afterEach(() => {
         return caches.delete("test-cache");
     });
-    it("Should ignore ranged request headers", function() {
+    it("Ignores ranged request headers", function() {
         let testResponse = new Response("this is a test response", {
             headers: {
                 "Content-Length": 23
@@ -33,13 +33,19 @@ xdescribe("Existing browser behaviour (should fail)", function() {
                     return cache.match(rangedRequest);
                 })
                 .then(res => {
-                    // Should equal 3! But we want this test to pass as a method of
-                    // tracking existing browser behaviour.
-                    expect(res.headers.get("Content-Length")).to.equal("3");
-                    return res.text();
-                })
-                .then(text => {
-                    expect(text).to.equal("thi");
+                    return res.text().then(text => {
+                        let lengthHeader = res.headers.get("Content-Length");
+                        if (lengthHeader !== "3") {
+                            throw new Error(
+                                "Expected Content-Length to equal 3."
+                            );
+                        }
+                        if (text !== "thi") {
+                            throw new Error(
+                                "Expected three character text response body."
+                            );
+                        }
+                    });
                 });
         });
     });
@@ -59,7 +65,7 @@ describe("Ranged Request handler", function() {
                 return res!.text();
             })
             .then(body => {
-                expect(body).to.be("this is a test response");
+                expect(body).to.equal("this is a test response");
             });
     });
 
@@ -99,11 +105,11 @@ describe("Ranged Request handler", function() {
 
         return checkForRangeRequest(testRequest, testResponse)
             .then(res => {
-                expect(res!.headers.get("content-length")).to.be("4");
+                expect(res!.headers.get("content-length")).to.equal("4");
                 return res!.text();
             })
             .then(body => {
-                expect(body).to.be("is a");
+                expect(body).to.equal("is a");
             });
     });
 
@@ -125,7 +131,7 @@ describe("Ranged Request handler", function() {
                 return res!.text();
             })
             .then(body => {
-                expect(body).to.be("response");
+                expect(body).to.equal("response");
             });
     });
 
@@ -154,7 +160,7 @@ describe("Ranged Request handler", function() {
                 return res!.text();
             })
             .then(body => {
-                expect(body).to.be("aaaaaaaaaaaaaaaaaaaa");
+                expect(body).to.equal("aaaaaaaaaaaaaaaaaaaa");
             });
     });
 });
@@ -198,7 +204,7 @@ describe("Cache", function() {
                 caught = err;
             })
             .then(() => {
-                expect(caught).to.be.ok();
+                expect(caught).to.be.instanceOf(Error);
             });
     });
 
@@ -215,7 +221,7 @@ describe("Cache", function() {
                     .then(cache => cache.match(partialRequest));
             })
             .then(response => {
-                expect(response).to.be.ok();
+                expect(response).to.be.instanceOf(Response);
                 expect(response.headers.get("content-length")).to.equal("4");
                 expect(response.status).to.equal(200);
                 return response.text();
@@ -239,7 +245,7 @@ describe("Cache", function() {
                     .then(res => checkForRangeRequest(partialRequest, res));
             })
             .then(response => {
-                expect(response).to.be.ok();
+                expect(response).to.be.instanceOf(Response);
                 expect(response.headers.get("content-length")).to.equal("2");
                 expect(response.status).to.equal(206);
                 return response.text();

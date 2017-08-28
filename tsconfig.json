@@ -4,10 +4,8 @@
         "declaration": true,
         "strictNullChecks": true,
         "moduleResolution": "node",
-        "allowJs": true,
+        "allowJs": false,
         "target": "es6"
     },
-    "include": [
-        "./src"
-    ]
+    "include": ["./src"]
 }

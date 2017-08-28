@@ -44,7 +44,7 @@ like so:
                 } else {
 
                     // No cached version, go to remote
-                    return fetch(e.request;)
+                    return fetch(e.request);
                 }
             })
         )

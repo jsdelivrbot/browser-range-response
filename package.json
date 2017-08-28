@@ -7,6 +7,10 @@
   "dependencies": {
     "range-parser": "^1.2.0"
   },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
   "devDependencies": {
     "@types/expect.js": "^0.3.29",
     "@types/mocha": "^2.2.40",

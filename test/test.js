@@ -17232,15 +17232,14 @@ function cloneHeaders(headers) {
     return newHeaders;
 }
 function checkForRangeRequest(req, res) {
-    return Promise.resolve()
-        .then(() => {
+    return Promise.resolve().then(() => {
         if (!res) {
             // cache.match() and the like will return null when there is no match
             // so rather than force people to do a null check, let's just immediately
             // return if there is no response
             return res;
         }
-        let rangeHeader = req.headers.get('range');
+        let rangeHeader = req.headers.get("range");
         if (!rangeHeader) {
             // If it isn't a range request, cool, just send it
             // straight through.
@@ -17250,7 +17249,7 @@ function checkForRangeRequest(req, res) {
             // This response is already partial, so we're good
             return res;
         }
-        let contentLength = res.headers.get('content-length');
+        let contentLength = res.headers.get("content-length");
         if (!contentLength) {
             throw new Error("Response does not have a content length. Cannot use range.");
         }
@@ -17280,8 +17279,7 @@ function checkForRangeRequest(req, res) {
         let currentReaderPosition;
         let controllerClosed;
         function performRead(controller) {
-            reader.read()
-                .then((readResponse) => {
+            reader.read().then((readResponse) => {
                 if (readResponse.done) {
                     // Our underlying stream is complete, so we can close this
                     // one too.
@@ -17300,7 +17298,7 @@ function checkForRangeRequest(req, res) {
                 // Now move the position along - that way, no matter what we return
                 // below, we know it's up to date.
                 currentReaderPosition += readResponse.value.length;
-                if (currentStart < start && currentEnd < start) {
+                if (currentStart < start && currentEnd <= start) {
                     // Before the part we want. So we return this function
                     // again - keeping the promise chain going until we reach
                     // the part of the response we want.
@@ -17325,13 +17323,13 @@ function checkForRangeRequest(req, res) {
                     let segment = readResponse.value.slice(0, end - currentStart + 1);
                     controller.enqueue(segment);
                 }
-                else if (currentStart < start && currentEnd >= end) {
+                else if (currentStart <= start && currentEnd >= end) {
                     // This one chunk is actually larger than the entire range we want.
                     // So we need to slice somewhere in the middle.
                     let startIndex = start - currentStart;
                     controller.enqueue(readResponse.value.slice(startIndex, startIndex + end - start + 1));
                 }
-                else if (currentStart < start && currentEnd > start) {
+                else if (currentStart <= start && currentEnd > start) {
                     // So what's left? Yes - the case when we only need the end of a
                     // chunk. Much like before, we slice, except from some midpoint
                     // to the end (by not providing a second slice() parameter)
@@ -17340,6 +17338,7 @@ function checkForRangeRequest(req, res) {
                     controller.enqueue(segment);
                 }
                 else {
+                    console.error("oh no", start, end, currentStart, currentEnd);
                     throw new Error("Unrecognised range error. File a bug!");
                 }
             });
@@ -17355,8 +17354,7 @@ function checkForRangeRequest(req, res) {
             pull(controller) {
                 return performRead(controller);
             },
-            cancel(reason) {
-            }
+            cancel(reason) { }
         });
         return new Response(responseStream, {
             headers: newHeaders,
@@ -17374,80 +17372,116 @@ require("mocha");
 const expectLib = require("../node_modules/expect.js");
 // stupid TS definitions
 let expect = expectLib;
-mocha.setup('bdd');
+mocha.setup({
+    ui: "bdd"
+});
+xdescribe("Existing browser behaviour (should fail)", function () {
+    afterEach(() => {
+        return caches.delete("test-cache");
+    });
+    it("Should ignore ranged request headers", function () {
+        let testResponse = new Response("this is a test response", {
+            headers: {
+                "Content-Length": 23
+            }
+        });
+        let testRequest = new Request("/test");
+        return caches.open("test-cache").then(cache => {
+            return cache
+                .put(testRequest, testResponse)
+                .then(() => {
+                let rangedRequest = new Request("/test", {
+                    headers: {
+                        Range: "bytes=0-3"
+                    }
+                });
+                return cache.match(rangedRequest);
+            })
+                .then(res => {
+                // Should equal 3! But we want this test to pass as a method of
+                // tracking existing browser behaviour.
+                expect(res.headers.get("Content-Length")).to.equal("3");
+                return res.text();
+            })
+                .then(text => {
+                expect(text).to.equal("thi");
+            });
+        });
+    });
+});
 describe("Ranged Request handler", function () {
     it("should pass a non-ranged request through without touching it", function () {
         let testResponse = new Response("this is a test response", {
             headers: {
-                'Content-Length': 23
+                "Content-Length": 23
             }
         });
         let testRequest = new Request("/test");
         return index_1.default(testRequest, testResponse)
-            .then((res) => {
+            .then(res => {
             return res.text();
         })
-            .then((body) => {
+            .then(body => {
             expect(body).to.be("this is a test response");
         });
     });
     it("should cut a response from the start", function () {
         let testResponse = new Response("this is a test response", {
             headers: {
-                'Content-Length': 23
+                "Content-Length": 23
             }
         });
         let testRequest = new Request("/test", {
             headers: {
-                Range: 'bytes=0-3'
+                Range: "bytes=0-3"
             }
         });
         return index_1.default(testRequest, testResponse)
-            .then((res) => {
-            expect(res.headers.get('content-length')).to.equal("4");
+            .then(res => {
+            expect(res.headers.get("content-length")).to.equal("4");
             return res.text();
         })
-            .then((body) => {
+            .then(body => {
             expect(body).to.equal("this");
         });
     });
     it("should cut a response from the middle", function () {
         let testResponse = new Response("this is a test response", {
             headers: {
-                'Content-Length': 23
+                "Content-Length": 23
             }
         });
         let testRequest = new Request("/test", {
             headers: {
-                Range: 'bytes=5-8'
+                Range: "bytes=5-8"
             }
         });
         return index_1.default(testRequest, testResponse)
-            .then((res) => {
-            expect(res.headers.get('content-length')).to.be('4');
+            .then(res => {
+            expect(res.headers.get("content-length")).to.be("4");
             return res.text();
         })
-            .then((body) => {
+            .then(body => {
             expect(body).to.be("is a");
         });
     });
     it("should cut a response from the end", function () {
         let testResponse = new Response("this is a test response", {
             headers: {
-                'Content-Length': 23
+                "Content-Length": 23
             }
         });
         let testRequest = new Request("/test", {
             headers: {
-                Range: 'bytes=15-'
+                Range: "bytes=15-"
             }
         });
         return index_1.default(testRequest, testResponse)
-            .then((res) => {
+            .then(res => {
             expect(res.headers.get("content-length")).to.equal("8");
             return res.text();
         })
-            .then((body) => {
+            .then(body => {
             expect(body).to.be("response");
         });
     });
@@ -17460,20 +17494,20 @@ describe("Ranged Request handler", function () {
         }
         let testResponse = new Response(responseString, {
             headers: {
-                'Content-Length': responseString.length
+                "Content-Length": responseString.length
             }
         });
         let testRequest = new Request("/test", {
             headers: {
-                Range: 'bytes=80000-80019'
+                Range: "bytes=80000-80019"
             }
         });
         return index_1.default(testRequest, testResponse)
-            .then((res) => {
+            .then(res => {
             expect(res.headers.get("content-length")).to.equal("20");
             return res.text();
         })
-            .then((body) => {
+            .then(body => {
             expect(body).to.be("aaaaaaaaaaaaaaaaaaaa");
         });
     });
@@ -17485,13 +17519,12 @@ describe("Cache", function () {
     function storeFullResponse() {
         let testResponse = new Response("TEST", {
             headers: {
-                'content-length': 4,
-                'accept-ranges': 'bytes'
+                "content-length": 4,
+                "accept-ranges": "bytes"
             }
         });
         let testRequest = new Request("/test");
-        return caches.open("test-cache")
-            .then((cache) => {
+        return caches.open("test-cache").then(cache => {
             return cache.put(testRequest, testResponse);
         });
     }
@@ -17504,11 +17537,12 @@ describe("Cache", function () {
             }
         });
         let caught;
-        return caches.open("test-cache")
-            .then((cache) => {
+        return caches
+            .open("test-cache")
+            .then(cache => {
             return cache.put(new Request("/test"), partialResponse);
         })
-            .catch((err) => {
+            .catch(err => {
             caught = err;
         })
             .then(() => {
@@ -17520,19 +17554,20 @@ describe("Cache", function () {
             .then(() => {
             let partialRequest = new Request("/test", {
                 headers: {
-                    Range: 'bytes=0-1'
+                    Range: "bytes=0-1"
                 }
             });
-            return caches.open("test-cache")
-                .then((cache) => cache.match(partialRequest));
+            return caches
+                .open("test-cache")
+                .then(cache => cache.match(partialRequest));
         })
-            .then((response) => {
+            .then(response => {
             expect(response).to.be.ok();
-            expect(response.headers.get('content-length')).to.equal('4');
+            expect(response.headers.get("content-length")).to.equal("4");
             expect(response.status).to.equal(200);
             return response.text();
         })
-            .then((text) => {
+            .then(text => {
             expect(text).to.equal("TEST");
         });
     });
@@ -17541,20 +17576,21 @@ describe("Cache", function () {
             .then(() => {
             let partialRequest = new Request("/test", {
                 headers: {
-                    Range: 'bytes=0-1'
+                    Range: "bytes=0-1"
                 }
             });
-            return caches.open("test-cache")
-                .then((cache) => cache.match(partialRequest))
-                .then((res) => index_1.default(partialRequest, res));
+            return caches
+                .open("test-cache")
+                .then(cache => cache.match(partialRequest))
+                .then(res => index_1.default(partialRequest, res));
         })
-            .then((response) => {
+            .then(response => {
             expect(response).to.be.ok();
-            expect(response.headers.get('content-length')).to.equal('2');
+            expect(response.headers.get("content-length")).to.equal("2");
             expect(response.status).to.equal(206);
             return response.text();
         })
-            .then((text) => {
+            .then(text => {
             expect(text).to.equal("TE");
         });
     });
@@ -17563,22 +17599,18 @@ describe("Compare with server", function () {
     it("should return same response from server as through handler", function () {
         let partialOptions = {
             headers: {
-                Range: 'bytes=60000-60249'
+                Range: "bytes=60000-60249"
             }
         };
-        return fetch('/test-file', partialOptions)
-            .then((partialRes) => {
-            expect(partialRes.headers.get('content-length')).to.equal('250');
-            return fetch('/test-file')
-                .then((fullRes) => {
-                let freshRequest = new Request('/test-file', partialOptions);
-                return index_1.default(freshRequest, fullRes)
-                    .then((manualPartialRes) => {
+        return fetch("/test-file", partialOptions).then(partialRes => {
+            expect(partialRes.headers.get("content-length")).to.equal("250");
+            return fetch("/test-file").then(fullRes => {
+                let freshRequest = new Request("/test-file", partialOptions);
+                return index_1.default(freshRequest, fullRes).then(manualPartialRes => {
                     return Promise.all([
                         partialRes.text(),
                         manualPartialRes.text()
-                    ])
-                        .then((results) => {
+                    ]).then(results => {
                         expect(results[0]).to.equal(results[1]);
                     });
                 });
